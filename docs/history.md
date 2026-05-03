@@ -2,6 +2,7 @@
 
 ## Development
 
+* FIX: ``open_nexradlevel2_datatree`` decodes volumes with interior sweep-index gaps end-to-end — translate sweep label → compact position in ``NexradLevel2Store.open_store_coordinates`` so the per-sweep entrypoint stops positionally indexing the compacted ``msg_31_header`` (follow-up to {pull}`362`) ({issue}`366`, {pull}`374`) by [@aladinor](https://github.com/aladinor)
 * DOC: Add projection comparison and cartopy map examples to ``Georeference_TargetCRS`` notebook by [@syedhamidali](https://github.com/syedhamidali)
 * DOC: Add full-form descriptions for all supported radar formats in README.md by [@syedhamidali](https://github.com/syedhamidali)
 * ADD: India Meteorological Department (IMD) radar NetCDF reader (``IMDBackendEntrypoint``, ``open_imd_datatree``). IMD stores one sweep per file; ``open_imd_datatree`` accepts a single file or a list of files to assemble a multi-sweep volume ({issue}`368`, {pull}`367`) by [@syedhamidali](https://github.com/syedhamidali)
