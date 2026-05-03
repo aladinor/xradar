@@ -74,7 +74,12 @@ try:
     fs = fsspec.filesystem("s3", anon=True)
     volumes = sorted(fs.ls("unidata-nexrad-level2-chunks/KABR/"))
     if volumes:
-        chunk_paths = sorted(fs.ls(volumes[-1]))
+        candidate_paths = sorted(fs.ls(volumes[-1]))
+        # The S (start) chunk carries the volume header (AR2V prefix); without
+        # it the concatenated bytes can't be decoded. Real-time chunks age out,
+        # so the most recent volume may have only I/E chunks left.
+        if any(p.endswith("_S") for p in candidate_paths):
+            chunk_paths = candidate_paths
 except Exception:
     pass
 
