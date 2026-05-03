@@ -73,11 +73,9 @@ chunk_paths = []
 try:
     fs = fsspec.filesystem("s3", anon=True)
     volumes = sorted(fs.ls("unidata-nexrad-level2-chunks/KABR/"))
-    # Real-time chunks arrive incrementally and age out one at a time, so the
-    # most recent volume may be mid-flight (no S yet) and recent ones may have
-    # lost their S. Walk newest -> oldest and require BOTH the S (start) and
-    # E (end) chunks so we know the volume is complete and decodable.
-    for vol in reversed(volumes):
+    # Newest volume may be mid-flight (no E); aging volumes may have lost
+    # their S. Walk back until we find one with both chunks present.
+    for vol in list(reversed(volumes))[:10]:
         candidate_paths = sorted(fs.ls(vol))
         suffixes = {p.rsplit("-", 1)[-1].rsplit("_", 1)[-1] for p in candidate_paths}
         if "S" in suffixes and "E" in suffixes:
