@@ -2,6 +2,7 @@
 
 ## Development
 
+* FIX: NEXRAD Level 2 reader drops MSG_31 records when an LDM Compressed Record carries MSG_2 (RDA Status) alongside the 120 radials — ``NEXRADRecordFile.init_record`` hard-coded a 120-message stride; per ICD ``2620010J`` §7.3.4 the LDM holds "120 radial messages (type 31) plus 0 or more RDA Status messages (type 2)". Replace the synthetic mod-120 stride with a byte-walk that detects end-of-LDM by buffer length, with a recnum-position cache for ``get_data``'s per-moment replay ({issue}`376`, {pull}`377`) by [@aladinor](https://github.com/aladinor)
 * FIX: ensure `to_cfradial2` correctly selects the default storage engine when none is provided, ({pull}`378`) by [@chfer](https://github.com/chfer)
 * MNT: Add ``cfradial1_sgp_file`` session fixture and refactor 8 tests in ``test_util.py``/``test_accessors.py`` to share it instead of inlining ``DATASETS.fetch("sample_sgp_data.nc")``. Fixture returns the filename so each test opens its own DataTree, avoiding cross-test mutation ({issue}`346`, {pull}`347`) by [@aladinor](https://github.com/aladinor)
 * FIX: IRIS reader rotates the first-loaded moment in each sweep by 1 ray — ``IrisRawFile._get_ray_record_offsets_and_data`` initialised ``j = -1`` so the first matching ray of the first-loaded moment was written to ``raw_data[-1]``; affects files without ``DB_XHDR`` (data-type bit 0) where ``DB_DBT`` becomes the rotated moment ({issue}`357`, {pull}`375`) by [@aladinor](https://github.com/aladinor)
