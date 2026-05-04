@@ -981,6 +981,12 @@ def test_bz2_compressed_buffer_path_real(nexradlevel2_bzfile):
         assert isinstance(fh._ldm[1], np.ndarray)
         assert fh._ldm[1].dtype == np.uint8
 
+        # Cold entry at recnum=134 must transition cleanly into a sequential
+        # walk — pins the byte-walker against future regressions in the
+        # cross-LDM-stride logic (#376).
+        assert fh.init_next_record()
+        assert fh.record_number == 135
+
 
 def test_nexradlevel2_missing_msg2_metadata():
     """
