@@ -8,7 +8,7 @@ import io
 import os
 import warnings
 from collections import OrderedDict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import numpy as np
 import pytest
@@ -1020,6 +1020,45 @@ def test_init_record_past_last_ldm_returns_false(nexradlevel2_bzfile):
             rec += 1
         # Next sequential advance must report EOF, not raise.
         assert fh.init_record(rec) is False
+
+
+def test_load_ldm_past_end_returns_false(nexradlevel2_bzfile):
+    """_load_ldm reports EOF when the requested LDM index is past the last (#376)."""
+    with open(nexradlevel2_bzfile, "rb") as f:
+        file_bytes = f.read()
+    with NEXRADLevel2File(file_bytes) as fh:
+        assert fh._load_ldm(len(fh.bz2_record_indices)) is False
+
+
+def test_init_record_metadata_propagates_ldm_load_failure(nexradlevel2_bzfile):
+    """Branch A propagates _load_ldm failure when no LDM is available (#376)."""
+    with open(nexradlevel2_bzfile, "rb") as f:
+        file_bytes = f.read()
+    with NEXRADLevel2File(file_bytes) as fh:
+        # Empty the LDM index so even LDM 0 fails to load.
+        with patch.object(
+            type(fh),
+            "bz2_record_indices",
+            new_callable=PropertyMock,
+            return_value=np.array([], dtype=int),
+        ):
+            assert fh.init_record(0) is False
+
+
+def test_first_compressed_call_with_metadata_only_returns_false(nexradlevel2_bzfile):
+    """First compressed init_record returns False when no data LDM exists (#376)."""
+    with open(nexradlevel2_bzfile, "rb") as f:
+        file_bytes = f.read()
+    with NEXRADLevel2File(file_bytes) as fh:
+        # Truncate the LDM list to just the metadata LDM (index 0).
+        only_meta = fh.bz2_record_indices[:1]
+        with patch.object(
+            type(fh),
+            "bz2_record_indices",
+            new_callable=PropertyMock,
+            return_value=only_meta,
+        ):
+            assert fh.init_record(134) is False
 
 
 def test_nexradlevel2_missing_msg2_metadata():
