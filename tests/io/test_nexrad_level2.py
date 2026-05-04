@@ -988,6 +988,40 @@ def test_bz2_compressed_buffer_path_real(nexradlevel2_bzfile):
         assert fh.record_number == 135
 
 
+def test_init_record_cold_compressed_non_134_raises(nexradlevel2_bzfile):
+    """Cold init_record into compressed data must start at recnum=134 (#376)."""
+    with open(nexradlevel2_bzfile, "rb") as f:
+        file_bytes = f.read()
+    with NEXRADLevel2File(file_bytes) as fh:
+        assert fh.is_compressed
+        with pytest.raises(ValueError, match="recnum=134"):
+            fh.init_record(200)
+
+
+def test_init_record_non_sequential_uncached_raises(nexradlevel2_bzfile):
+    """init_record(N) past a sequential walk, with N uncached, must raise (#376)."""
+    with open(nexradlevel2_bzfile, "rb") as f:
+        file_bytes = f.read()
+    with NEXRADLevel2File(file_bytes) as fh:
+        fh.init_record(134)
+        fh.init_next_record()  # populates cache for 135
+        with pytest.raises(ValueError, match="non-sequential"):
+            fh.init_record(9999)  # never visited, not in cache
+
+
+def test_init_record_past_last_ldm_returns_false(nexradlevel2_bzfile):
+    """init_record past the last LDM returns False (EOF semantics) (#376)."""
+    with open(nexradlevel2_bzfile, "rb") as f:
+        file_bytes = f.read()
+    with NEXRADLevel2File(file_bytes) as fh:
+        # Walk to the very end so subsequent advances run out of LDMs.
+        rec = 134
+        while fh.init_record(rec):
+            rec += 1
+        # Next sequential advance must report EOF, not raise.
+        assert fh.init_record(rec) is False
+
+
 def test_nexradlevel2_missing_msg2_metadata():
     """
     Test backward compatibility when msg_2 metadata is missing.
