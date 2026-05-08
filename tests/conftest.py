@@ -84,7 +84,7 @@ def nexradlevel2_file():
 
 
 @pytest.fixture(scope="session")
-def nexradlevel2_kilx_ldm_stride_file():
+def nexradlevel2_ldm_stride_file():
     """KILX volume with an over-120-message LDM (#376 regression fixture).
 
     LDM 49 of this file contains 120 MSG_31 + 2 MSG_2 = 122 messages.

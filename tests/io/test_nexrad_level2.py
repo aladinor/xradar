@@ -1061,21 +1061,19 @@ def test_first_compressed_call_with_metadata_only_returns_false(nexradlevel2_bzf
             assert fh.init_record(134) is False
 
 
-def test_kilx_over_120_ldm_decodes_all_msg31(nexradlevel2_kilx_ldm_stride_file):
+def test_ldm_stride_decodes_all_msg31(nexradlevel2_ldm_stride_file):
     """KILX file regression for #376.
 
     LDM 49 has 122 messages (120 MSG_31 + 2 MSG_2). Pre-fix, xradar's
     mod-120 stride dropped the trailing 2 MSG_31s; sweep_10 reported 358
     instead of the on-wire-correct 360. This pins the fix end-to-end.
     """
-    with NEXRADLevel2File(nexradlevel2_kilx_ldm_stride_file, loaddata=False) as nex:
-        nex.get_data_header()
+    with NEXRADLevel2File(nexradlevel2_ldm_stride_file, loaddata=False) as nex:
         per_sweep = [len(s) for s in nex.msg_31_header]
 
     # 13 sweeps total: 6 super-res (720 rays) + 7 standard (360 rays).
+    # Pre-fix, sweep_10 was 358 — the list-equality diff pinpoints the regression.
     assert per_sweep == [720] * 6 + [360] * 7
-    assert sum(per_sweep) == 6840
-    assert per_sweep[10] == 360  # the formerly-truncated sweep
 
 
 def test_nexradlevel2_missing_msg2_metadata():
