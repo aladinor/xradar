@@ -18,6 +18,7 @@ from xarray import DataTree
 
 import xradar as xd
 from xradar.io import _ENGINE_REGISTRY
+from xradar.io.backends import open_imd_datatree
 
 # -- Fixtures ----------------------------------------------------------------
 
@@ -28,16 +29,28 @@ from xradar.io import _ENGINE_REGISTRY
         pytest.param(("gamic", "gamic_file"), id="gamic"),
         pytest.param(("iris", "iris0_file"), id="iris"),
         pytest.param(("nexradlevel2", "nexradlevel2_file"), id="nexradlevel2"),
+        pytest.param(("cfradial2", "cfradial2_file"), id="cfradial2"),
         pytest.param(("furuno", "furuno_scn_file"), id="furuno"),
         pytest.param(("rainbow", "rainbow_file"), id="rainbow"),
         pytest.param(("datamet", "datamet_file"), id="datamet"),
         pytest.param(("hpl", "hpl_file"), id="hpl"),
         pytest.param(("metek", "metek_ave_gz_file"), id="metek"),
         pytest.param(("uf", "uf_file_1"), id="uf"),
+        pytest.param(
+            ("imd", "imd_file"),
+            marks=pytest.mark.skip(
+                reason="IMD is single-sweep-per-file; see TestIMDMultiFile",
+            ),
+            id="imd",
+        ),
     ]
 )
 def engine_and_file(request):
-    """Parametrize over all engines with their fixture names."""
+    """Parametrize over all engines.
+
+    See ``TestIMDMultiFile`` for IMD-specific coverage (the multi-file
+    carve-out from the engine= API).
+    """
     engine, fixture_name = request.param
     filepath = request.getfixturevalue(fixture_name)
     return engine, filepath
@@ -190,6 +203,58 @@ class TestXrOpenDatatree:
     def test_xr_open_datatree_uf(self, uf_file_1):
         dtree = xr.open_datatree(uf_file_1, engine="uf")
         _assert_cfradial2_structure(dtree)
+
+    def test_xr_open_datatree_cfradial2(self, cfradial2_file):
+        dtree = xr.open_datatree(cfradial2_file, engine="cfradial2")
+        _assert_cfradial2_structure(dtree)
+
+    def test_xr_open_datatree_imd(self, imd_file):
+        dtree = xr.open_datatree(imd_file, engine="imd")
+        _assert_cfradial2_structure(dtree)
+
+
+# -- IMD: multi-file carve-out vs single-file engine -------------------------
+
+
+class TestIMDMultiFile:
+    """IMD is the documented multi-file carve-out from the engine= API.
+
+    The single-file path uses ``engine="imd"``; multi-file volumes still
+    go through the module-level ``xd.io.open_imd_datatree([files])``.
+    """
+
+    def test_engine_imd_handles_single_file(self, imd_file):
+        dtree = xd.open_datatree(imd_file, engine="imd")
+        _assert_cfradial2_structure(dtree)
+        sweep_groups = [k for k in dtree.children if k.startswith("sweep_")]
+        assert len(sweep_groups) == 1
+
+    def test_module_level_handles_multi_file_volume(self, imd_volume_files):
+        # Precondition: each fixture file in `imd_volume_files` contains
+        # exactly one sweep, so the resulting volume has one sweep per file.
+        dtree = open_imd_datatree(imd_volume_files)
+        _assert_cfradial2_structure(dtree)
+        sweep_groups = [k for k in dtree.children if k.startswith("sweep_")]
+        assert len(sweep_groups) == len(imd_volume_files)
+
+
+# -- CfRadial2 site_coords behavior ------------------------------------------
+
+
+class TestCfRadial2SiteCoords:
+    """`site_coords` honors True/False for the CfRadial2 entrypoint."""
+
+    def test_site_coords_true_keeps_station_coords(self, cfradial2_file):
+        dtree = xd.open_datatree(cfradial2_file, engine="cfradial2", site_coords=True)
+        assert "latitude" in dtree.ds.coords
+        assert "longitude" in dtree.ds.coords
+        assert "altitude" in dtree.ds.coords
+
+    def test_site_coords_false_drops_station_coords(self, cfradial2_file):
+        dtree = xd.open_datatree(cfradial2_file, engine="cfradial2", site_coords=False)
+        assert "latitude" not in dtree.ds.coords
+        assert "longitude" not in dtree.ds.coords
+        assert "altitude" not in dtree.ds.coords
 
 
 # -- supports_groups attribute -----------------------------------------------

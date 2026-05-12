@@ -178,6 +178,8 @@ def _iter_selected_sweeps(tree: DataTree, sweep: Any) -> list[str]:
                 selected.append(f"sweep_{item}")
             else:
                 selected.append(_normalize_sweep_name(item))
+        if not selected:
+            raise ValueError("sweep list is empty.")
         return selected
     raise TypeError("sweep must be None, int, str or an iterable of ints/strings")
 
@@ -615,9 +617,10 @@ class CfRadial2BackendEntrypoint(BackendEntrypoint):
         first_dim="time",
         optional=True,
         optional_groups=False,
+        site_coords=True,
         **kwargs,
     ):
-        return _build_cfradial2_dtree_dict(
+        groups_dict = _build_cfradial2_dtree_dict(
             filename_or_obj,
             sweep=sweep,
             first_dim=first_dim,
@@ -625,6 +628,14 @@ class CfRadial2BackendEntrypoint(BackendEntrypoint):
             optional_groups=optional_groups,
             **kwargs,
         )
+        # CfRadial2 places station coords at root by default. Honor
+        # site_coords=False by dropping them, matching the per-sweep
+        # contract used by odim/gamic/cfradial1.
+        if not site_coords:
+            groups_dict["/"] = groups_dict["/"].drop_vars(
+                _STATION_VARS, errors="ignore"
+            )
+        return groups_dict
 
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
