@@ -537,7 +537,9 @@ class CfRadial1BackendEntrypoint(BackendEntrypoint):
         )
 
         for i, sw_ds in enumerate(sweep_datasets):
-            groups_dict[f"/sweep_{i}"] = sw_ds.drop_attrs(deep=False)
+            # Drop station coords from per-sweep datasets — they live on root.
+            sw = sw_ds.drop_vars(_STATION_VARS, errors="ignore")
+            groups_dict[f"/sweep_{i}"] = sw.drop_attrs(deep=False)
 
         return groups_dict
 

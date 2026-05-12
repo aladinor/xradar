@@ -997,6 +997,10 @@ def open_odim_datatree(filename_or_obj, **kwargs):
     optional = backend_kwargs.pop("optional", True)
     optional_groups = kwargs.pop("optional_groups", False)
     sweep = kwargs.pop("sweep", None)
+    # Translate the legacy `site_as_coords` spelling to the canonical
+    # `site_coords` kwarg the entrypoint accepts.
+    if "site_as_coords" in kwargs:
+        kwargs["site_coords"] = kwargs.pop("site_as_coords")
 
     return OdimBackendEntrypoint().open_datatree(
         filename_or_obj,

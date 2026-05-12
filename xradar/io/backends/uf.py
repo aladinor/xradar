@@ -560,7 +560,8 @@ class UFStore(AbstractDataStore):
 
     def __init__(self, manager, group=None, lock=UF_LOCK):
         self._manager = manager
-        self._group = int(group[6:]) + 1
+        # Accept both ``"sweep_N"`` and ``"/sweep_N"`` (NodePath form).
+        self._group = int(group.rsplit("sweep_", 1)[-1]) + 1
         self._filename = self.filename
         self._need_time_recalc = False
         self.lock = ensure_lock(lock)
@@ -839,6 +840,21 @@ class UFBackendEntrypoint(BackendEntrypoint):
         lock=None,
         **kwargs,
     ):
+        from xarray.core.treenode import NodePath
+
+        # Normalise NodePath strings ("/sweep_0" -> "sweep_0") and validate
+        # list element types before resolving.
+        if isinstance(sweep, str):
+            sweep = NodePath(sweep).name
+        elif isinstance(sweep, list) and sweep:
+            if isinstance(sweep[0], str):
+                sweep = [NodePath(i).name for i in sweep]
+            elif not isinstance(sweep[0], int):
+                raise ValueError(
+                    "Invalid type in 'sweep' list. Expected integers "
+                    "(e.g., [0, 1, 2]) or strings (e.g. [/sweep_0, sweep_1])."
+                )
+
         sweeps = _resolve_sweeps(
             sweep,
             lambda: [
