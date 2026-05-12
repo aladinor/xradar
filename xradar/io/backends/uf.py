@@ -47,8 +47,12 @@ from xarray.core.variable import Variable
 from xradar import util
 from xradar.io.backends.common import (
     _STATION_VARS,
+    LOCK_PARAM_DOC,
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
     _apply_site_as_coords,
     _assign_root,
+    _compose_docstring,
     _deprecation_warning,
     _get_radar_calibration,
     _get_subgroup,
@@ -883,6 +887,18 @@ class UFBackendEntrypoint(BackendEntrypoint):
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+UFBackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a Universal Format (UF) file as a CfRadial2-shaped dict of group datasets.",
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+    LOCK_PARAM_DOC,
+)
+UFBackendEntrypoint.open_datatree.__doc__ = (
+    "Open a Universal Format (UF) file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def open_uf_datatree(filename_or_obj, **kwargs):

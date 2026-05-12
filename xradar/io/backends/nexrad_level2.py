@@ -56,8 +56,12 @@ from xarray.core.variable import Variable
 from xradar import util
 from xradar.io.backends.common import (
     _STATION_VARS,
+    LOCK_PARAM_DOC,
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
     _apply_site_as_coords,
     _assign_root,
+    _compose_docstring,
     _deprecation_warning,
     _get_radar_calibration,
     _get_subgroup,
@@ -2120,6 +2124,29 @@ class NexradLevel2BackendEntrypoint(BackendEntrypoint):
     ):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+_NEXRAD_PARAMS_DOC = """
+incomplete_sweep : {"drop", "pad"}, optional
+    How to handle sweeps with fewer rays than the VCP nominal count.
+    ``"drop"`` (default) excludes them with a UserWarning; ``"pad"``
+    keeps them with NaN-filled rays so the reindexed azimuth grid is
+    complete.
+"""
+
+NexradLevel2BackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a NEXRAD Level II file as a CfRadial2-shaped dict of group datasets.\n"
+    "    Accepts a single file path, a bytes buffer, or a list/tuple of LDM\n"
+    "    chunk paths (the first chunk must hold the AR2V volume header).",
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+    _NEXRAD_PARAMS_DOC,
+    LOCK_PARAM_DOC,
+)
+NexradLevel2BackendEntrypoint.open_datatree.__doc__ = (
+    "Open a NEXRAD Level II file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def open_nexradlevel2_datatree(

@@ -41,7 +41,10 @@ from ...model import (
     get_time_attrs,
 )
 from .common import (
+    HDF5_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
     _build_groups_dict,
+    _compose_docstring,
     _deprecation_warning,
     _resolve_sweeps,
 )
@@ -676,6 +679,19 @@ class MRRBackendEntrypoint(BackendEntrypoint):
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+MRRBackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a Metek MRR2 (.ave/.pro/.raw) file as a CfRadial2-shaped dict of\n"
+    "    group datasets. MRR2 is a vertically pointing radar — the output\n"
+    "    contains one ``sweep_0`` group with all profiles.",
+    HDF5_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+)
+MRRBackendEntrypoint.open_datatree.__doc__ = (
+    "Open a Metek MRR2 file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def open_metek_datatree(filename_or_obj, **kwargs):

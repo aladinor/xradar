@@ -50,8 +50,11 @@ from ...model import (
     sweep_vars_mapping,
 )
 from .common import (
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
     _apply_site_as_coords,
     _build_groups_dict,
+    _compose_docstring,
     _deprecation_warning,
     _resolve_sweeps,
 )
@@ -493,6 +496,18 @@ class DataMetBackendEntrypoint(BackendEntrypoint):
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+DataMetBackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a DataMet (Servizio Meteorologico Italiano) ``.tar.gz`` archive as a\n"
+    "    CfRadial2-shaped dict of group datasets.",
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+)
+DataMetBackendEntrypoint.open_datatree.__doc__ = (
+    "Open a DataMet archive as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def open_datamet_datatree(filename_or_obj, **kwargs):

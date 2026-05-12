@@ -64,6 +64,7 @@ from ...model import (
 from .common import (
     _STATION_VARS,
     _apply_site_as_coords,
+    _compose_docstring,
     _get_subgroup,
 )
 
@@ -506,6 +507,29 @@ class IMDBackendEntrypoint(BackendEntrypoint):
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+_IMD_PARAMS_DOC = """
+    reindex_angle : bool or dict, optional
+        Resample rays onto a regular angular grid. See
+        :func:`xradar.util.reindex_angle`. Defaults to ``False``.
+    site_as_coords : bool, optional
+        Attach ``latitude``/``longitude``/``altitude`` as coords on the
+        sweep dataset. (Note: IMD uses the legacy ``site_as_coords``
+        spelling rather than ``site_coords`` — kept for backward
+        compatibility.) Defaults to ``True``.
+"""
+
+IMDBackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a single IMD (India Meteorological Department) NetCDF file as a\n"
+    "    CfRadial2-shaped dict of group datasets. Single-file only — for\n"
+    "    multi-file IMD volumes use :func:`open_imd_datatree`.",
+    _IMD_PARAMS_DOC,
+)
+IMDBackendEntrypoint.open_datatree.__doc__ = (
+    "Open a single IMD NetCDF file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def _read_imd_sweep(filename, first_dim="auto", reindex_angle=False, **kwargs):

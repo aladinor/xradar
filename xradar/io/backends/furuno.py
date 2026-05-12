@@ -68,14 +68,17 @@ from ...model import (
     sweep_vars_mapping,
 )
 from .common import (
+    REINDEX_PARAMS_DOC,
     SINT2,
     SINT4,
+    SITE_COORDS_PARAM_DOC,
     UINT1,
     UINT2,
     UINT4,
     _apply_site_as_coords,
     _build_groups_dict,
     _calculate_angle_res,
+    _compose_docstring,
     _deprecation_warning,
     _get_fmt_string,
     _resolve_sweeps,
@@ -823,6 +826,24 @@ class FurunoBackendEntrypoint(BackendEntrypoint):
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+_FURUNO_PARAMS_DOC = """
+    obsmode : int or None, optional
+        Override the file's observation-mode flag (rare; only needed for
+        files written by older firmware). Defaults to ``None``.
+"""
+
+FurunoBackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a Furuno SCN or SCNX file as a CfRadial2-shaped dict of group datasets.",
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+    _FURUNO_PARAMS_DOC,
+)
+FurunoBackendEntrypoint.open_datatree.__doc__ = (
+    "Open a Furuno SCN or SCNX file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def open_furuno_datatree(filename_or_obj, **kwargs):

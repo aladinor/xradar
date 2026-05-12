@@ -272,6 +272,61 @@ class TestSupportsGroups:
         assert backend_cls.supports_groups is True
 
 
+# -- Docstring regression guard ---------------------------------------------
+
+
+class TestDocstrings:
+    """`open_groups_as_dict` / `open_datatree` must carry usable docstrings.
+
+    The composed docstrings are assigned by module-level side effects
+    (e.g. ``OdimBackendEntrypoint.open_groups_as_dict.__doc__ = ...``).
+    Without this guard a future refactor could silently delete a
+    docstring and no test would catch the regression.
+    """
+
+    @pytest.mark.parametrize(
+        "engine",
+        sorted(_ENGINE_REGISTRY.keys()),
+    )
+    def test_open_groups_as_dict_has_param_docstring(self, engine):
+        doc = _ENGINE_REGISTRY[engine].open_groups_as_dict.__doc__
+        assert doc, f"{engine} open_groups_as_dict has no docstring"
+        assert "Parameters" in doc
+        assert "Returns" in doc
+        assert "optional_groups" in doc
+
+    @pytest.mark.parametrize(
+        "engine",
+        sorted(_ENGINE_REGISTRY.keys()),
+    )
+    def test_open_datatree_references_groups_as_dict(self, engine):
+        doc = _ENGINE_REGISTRY[engine].open_datatree.__doc__
+        assert doc, f"{engine} open_datatree has no docstring"
+        assert "open_groups_as_dict" in doc
+
+
+def test_compose_docstring_structure():
+    """`_compose_docstring` assembles summary + common block + extras + Returns."""
+    from xradar.io.backends.common import REINDEX_PARAMS_DOC, _compose_docstring
+
+    doc = _compose_docstring("Summary line.", REINDEX_PARAMS_DOC)
+    assert doc.startswith("Summary line.")
+    assert "Parameters" in doc
+    assert "Returns" in doc
+    assert "reindex_angle" in doc
+    assert "filename_or_obj" in doc  # common block is always included
+    assert "dict[str, xarray.Dataset]" in doc
+
+
+def test_compose_docstring_skips_empty_extra_blocks():
+    """Empty/None extra blocks must not double-insert section headers."""
+    from xradar.io.backends.common import _compose_docstring
+
+    doc = _compose_docstring("Summary.", "", None)
+    assert doc.count("Parameters") == 1
+    assert doc.count("Returns") == 1
+
+
 # -- Engine registry ---------------------------------------------------------
 
 

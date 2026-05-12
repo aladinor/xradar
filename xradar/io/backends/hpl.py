@@ -52,8 +52,11 @@ from ...model import (
     get_longitude_attrs,
 )
 from .common import (
+    HDF5_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
     _apply_site_as_coords,
     _build_groups_dict,
+    _compose_docstring,
     _deprecation_warning,
     _resolve_sweeps,
 )
@@ -652,6 +655,32 @@ class HPLBackendEntrypoint(BackendEntrypoint):
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+_HPL_PARAMS_DOC = """
+latitude : float, optional
+    Override the site latitude (HPL files often lack geolocation).
+longitude : float, optional
+    Override the site longitude.
+altitude : float, optional
+    Override the site altitude above sea level (meters).
+transition_threshold_azi : float, optional
+    Azimuth-jump threshold (deg) for sweep boundary detection.
+transition_threshold_el : float, optional
+    Elevation-jump threshold (deg) for sweep boundary detection.
+"""
+
+HPLBackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a Halo Photonics Stream Line (.hpl) lidar file as a\n"
+    "    CfRadial2-shaped dict of group datasets.",
+    HDF5_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+    _HPL_PARAMS_DOC,
+)
+HPLBackendEntrypoint.open_datatree.__doc__ = (
+    "Open a Halo Photonics .hpl file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def _get_hpl_group_names(filename_or_obj):

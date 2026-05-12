@@ -51,7 +51,10 @@ from ...model import (
 )
 from .common import (
     _STATION_VARS,
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
     _apply_site_as_coords,
+    _compose_docstring,
     _deprecation_warning,
     _maybe_decode,
 )
@@ -545,3 +548,21 @@ class CfRadial1BackendEntrypoint(BackendEntrypoint):
     ):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+_CFRADIAL1_PARAMS_DOC = """
+    engine : {"netcdf4", "h5netcdf"}, optional
+        Underlying NetCDF engine used by ``xr.open_dataset`` to read the
+        CfRadial1 file. Defaults to ``"netcdf4"``.
+"""
+
+CfRadial1BackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a CfRadial1 file as a CfRadial2-shaped dict of group datasets.",
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+    _CFRADIAL1_PARAMS_DOC,
+)
+CfRadial1BackendEntrypoint.open_datatree.__doc__ = (
+    "Open a CfRadial1 file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)

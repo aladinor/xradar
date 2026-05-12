@@ -58,7 +58,12 @@ from ...model import (
     required_root_vars,
     sweep_vars_mapping,
 )
-from .common import _STATION_VARS, _apply_site_as_coords, _deprecation_warning
+from .common import (
+    _STATION_VARS,
+    _apply_site_as_coords,
+    _compose_docstring,
+    _deprecation_warning,
+)
 
 _ROOT_ATTR_RENAMES = {
     "RadarName": "instrument_name",
@@ -640,6 +645,25 @@ class CfRadial2BackendEntrypoint(BackendEntrypoint):
     def open_datatree(self, filename_or_obj, **kwargs):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+_CFRADIAL2_PARAMS_DOC = """
+    site_coords : bool, optional
+        Keep ``latitude``/``longitude``/``altitude`` as coordinates on
+        the root dataset. CfRadial2 stores station coords at root by
+        default; pass ``False`` to drop them. Defaults to ``True``.
+"""
+
+CfRadial2BackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open a CfRadial2/FM301 grouped file as a dict of normalized group datasets.\n"
+    "    Best-effort normalization of common institutional variations is\n"
+    "    applied so the result matches xradar's FM301-oriented layout.",
+    _CFRADIAL2_PARAMS_DOC,
+)
+CfRadial2BackendEntrypoint.open_datatree.__doc__ = (
+    "Open a CfRadial2/FM301 grouped file as :py:class:`xarray.DataTree`. "
+    "See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def open_cfradial2_datatree(

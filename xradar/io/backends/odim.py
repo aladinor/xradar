@@ -66,8 +66,12 @@ from ...model import (
     sweep_vars_mapping,
 )
 from .common import (
+    HDF5_PARAMS_DOC,
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
     _apply_site_as_coords,
     _build_groups_dict,
+    _compose_docstring,
     _deprecation_warning,
     _fix_angle,
     _get_h5group_names,
@@ -933,6 +937,20 @@ class OdimBackendEntrypoint(BackendEntrypoint):
     ):
         groups_dict = self.open_groups_as_dict(filename_or_obj, **kwargs)
         return DataTree.from_dict(groups_dict)
+
+
+OdimBackendEntrypoint.open_groups_as_dict.__doc__ = _compose_docstring(
+    "Open an ODIM_H5 file as a CfRadial2-shaped dict of group datasets.",
+    HDF5_PARAMS_DOC,
+    REINDEX_PARAMS_DOC,
+    SITE_COORDS_PARAM_DOC,
+)
+OdimBackendEntrypoint.open_datatree.__doc__ = (
+    "Open an ODIM_H5 file as :py:class:`xarray.DataTree`.\n\n"
+    "Equivalent to "
+    "``DataTree.from_dict(self.open_groups_as_dict(filename_or_obj, **kwargs))``."
+    " See :meth:`open_groups_as_dict` for keyword arguments.\n"
+)
 
 
 def open_odim_datatree(filename_or_obj, **kwargs):
