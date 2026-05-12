@@ -227,6 +227,7 @@ class TestEngineRegistry:
             "hpl",
             "metek",
             "uf",
+            "imd",
         }
         assert set(_ENGINE_REGISTRY.keys()) == expected
 

@@ -23,6 +23,7 @@ from .backends.datamet import DataMetBackendEntrypoint
 from .backends.furuno import FurunoBackendEntrypoint
 from .backends.gamic import GamicBackendEntrypoint
 from .backends.hpl import HPLBackendEntrypoint
+from .backends.imd import IMDBackendEntrypoint
 from .backends.iris import IrisBackendEntrypoint
 from .backends.metek import MRRBackendEntrypoint
 from .backends.nexrad_level2 import NexradLevel2BackendEntrypoint
@@ -44,6 +45,7 @@ _ENGINE_REGISTRY = {
     "hpl": HPLBackendEntrypoint,
     "metek": MRRBackendEntrypoint,
     "uf": UFBackendEntrypoint,
+    "imd": IMDBackendEntrypoint,
 }
 
 
