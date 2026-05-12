@@ -1156,6 +1156,24 @@ _CHANNEL_CONFIGS = {
 }
 
 
+def _sweep_attrs_from_msg5_elev(elev):
+    """Build the per-sweep attrs dict from one MSG_5_ELEV entry (ICD Table XI)."""
+    wf = elev.get("waveform_type", 0)
+    ch = elev.get("channel_config", 0)
+    sup = elev.get("supplemental_data_decoded", {})
+    return {
+        "waveform_type": _WAVEFORM_TYPES.get(wf, str(wf)),
+        "channel_config": _CHANNEL_CONFIGS.get(ch, str(ch)),
+        "super_resolution": elev.get("super_resolution", 0),
+        "sails_cut": sup.get("sails_cut", False),
+        "sails_sequence_number": sup.get("sails_sequence_number", 0),
+        "mrle_cut": sup.get("mrle_cut", False),
+        "mrle_sequence_number": sup.get("mrle_sequence_number", 0),
+        "mpda_cut": sup.get("mpda_cut", False),
+        "base_tilt_cut": sup.get("base_tilt_cut", False),
+    }
+
+
 def _assign_sweep_attrs(dtree, elev_data):
     """Inject per-sweep attrs from MSG_5_ELEV data onto sweep nodes.
 
@@ -1168,22 +1186,7 @@ def _assign_sweep_attrs(dtree, elev_data):
         sweep_key = f"sweep_{i}"
         if sweep_key not in dtree.children:
             continue
-        wf = elev.get("waveform_type", 0)
-        ch = elev.get("channel_config", 0)
-        sup = elev.get("supplemental_data_decoded", {})
-        dtree[sweep_key].ds.attrs.update(
-            {
-                "waveform_type": _WAVEFORM_TYPES.get(wf, str(wf)),
-                "channel_config": _CHANNEL_CONFIGS.get(ch, str(ch)),
-                "super_resolution": elev.get("super_resolution", 0),
-                "sails_cut": sup.get("sails_cut", False),
-                "sails_sequence_number": sup.get("sails_sequence_number", 0),
-                "mrle_cut": sup.get("mrle_cut", False),
-                "mrle_sequence_number": sup.get("mrle_sequence_number", 0),
-                "mpda_cut": sup.get("mpda_cut", False),
-                "base_tilt_cut": sup.get("base_tilt_cut", False),
-            }
-        )
+        dtree[sweep_key].ds.attrs.update(_sweep_attrs_from_msg5_elev(elev))
 
 
 def _get_dynamic_scan_type(supplemental):
@@ -2002,27 +2005,39 @@ class NexradLevel2BackendEntrypoint(BackendEntrypoint):
                     "which contains the volume header and metadata."
                 )
 
-        # Single metadata read
+        # Single metadata read. Reading incomplete_sweeps triggers
+        # data_header parsing and populates nex.data — needed for
+        # present_keys below.
         with NEXRADLevel2File(filename_or_obj, loaddata=False) as nex:
-            act_sweeps = len(nex.msg_31_data_header)
             incomplete = nex.incomplete_sweeps
+            # Use sparse sweep keys: upstream-dropped interior cuts leave
+            # gaps like [0..9, 11] that range(act_sweeps) would mis-index.
+            # See #361.
+            present_keys = sorted(nex.data)
+            act_sweeps = len(present_keys)
+            elev_data = nex.msg_5.get("elevation_data", []) if nex.msg_5 else []
 
         # Normalise NodePath strings before resolving sweeps
         if isinstance(sweep, str):
             sweep = NodePath(sweep).name
-        elif isinstance(sweep, list) and sweep and isinstance(sweep[0], str):
-            sweep = [NodePath(i).name for i in sweep]
+        elif isinstance(sweep, list) and sweep:
+            if isinstance(sweep[0], str):
+                sweep = [NodePath(i).name for i in sweep]
+            elif not isinstance(sweep[0], int):
+                raise ValueError(
+                    "Invalid type in 'sweep' list. Expected integers "
+                    "(e.g., [0, 1, 2]) or strings "
+                    "(e.g. [/sweep_0, sweep_1])."
+                )
 
         if sweep is not None:
             sweeps = _resolve_sweeps(
                 sweep,
-                lambda: [f"sweep_{i}" for i in range(act_sweeps)],
+                lambda: [f"sweep_{i}" for i in present_keys],
             )
         else:
             if incomplete_sweep == "drop":
-                sweeps = [
-                    f"sweep_{i}" for i in range(act_sweeps) if i not in incomplete
-                ]
+                sweeps = [f"sweep_{i}" for i in present_keys if i not in incomplete]
                 if incomplete:
                     warnings.warn(
                         f"Dropped {len(incomplete)} incomplete sweep(s): "
@@ -2039,7 +2054,7 @@ class NexradLevel2BackendEntrypoint(BackendEntrypoint):
                     )
                     return {"/": xr.Dataset()}
             elif incomplete_sweep == "pad":
-                sweeps = [f"sweep_{i}" for i in range(act_sweeps)]
+                sweeps = [f"sweep_{i}" for i in present_keys]
             else:
                 raise ValueError(
                     f"Invalid incomplete_sweep={incomplete_sweep!r}. "
@@ -2072,6 +2087,9 @@ class NexradLevel2BackendEntrypoint(BackendEntrypoint):
         ls_ds = [sweep_dict[s] for s in sweep_dict]
         ls_ds_with_root = [xr.Dataset()] + list(ls_ds)
         root, ls_ds_with_root = _assign_root(ls_ds_with_root)
+        # Per ICD, total cuts actually recorded in the file (MSG_31 headers),
+        # not user selection. Used downstream to detect AVSET truncation.
+        root.attrs["actual_elevation_cuts"] = act_sweeps
         groups_dict = {
             "/": root,
         }
@@ -2085,8 +2103,13 @@ class NexradLevel2BackendEntrypoint(BackendEntrypoint):
             groups_dict["/radar_calibration"] = _get_radar_calibration(
                 ls_ds_with_root, radar_calibration_subgroup
             )
+        # Inject per-sweep attrs from MSG_5_ELEV (ICD Table XI). The elev_data
+        # index aligns with sweep_{i} because both order by VCP cut index.
         for sweep_path, ds in sweep_dict.items():
             sw = ds.drop_vars(_STATION_VARS, errors="ignore").drop_attrs(deep=False)
+            sweep_idx = int(sweep_path.split("_")[-1])
+            if 0 <= sweep_idx < len(elev_data):
+                sw.attrs.update(_sweep_attrs_from_msg5_elev(elev_data[sweep_idx]))
             groups_dict[f"/{sweep_path}"] = sw
         return groups_dict
 
@@ -2209,6 +2232,11 @@ def open_nexradlevel2_datatree(
         An `xarray.DataTree` representing the radar data organized by sweeps.
     """
     _deprecation_warning("open_nexradlevel2_datatree", "nexradlevel2")
+
+    # Legacy callers may pass `site_coords` via kwargs; the explicit
+    # `site_as_coords` parameter is the canonical wrapper signature.
+    # Honor the legacy name if given so existing callers keep working.
+    site_as_coords = kwargs.pop("site_coords", site_as_coords)
 
     return NexradLevel2BackendEntrypoint().open_datatree(
         filename_or_obj,
