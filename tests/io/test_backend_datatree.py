@@ -217,6 +217,7 @@ class TestEngineRegistry:
         expected = {
             "odim",
             "cfradial1",
+            "cfradial2",
             "nexradlevel2",
             "gamic",
             "iris",
@@ -246,6 +247,11 @@ _DEPRECATED_FUNCTIONS = {
         "xradar.io.backends.cfradial1",
         "cfradial1_file",
         {"engine": "h5netcdf", "decode_timedelta": False},
+    ),
+    "open_cfradial2_datatree": (
+        "xradar.io.backends.cfradial2",
+        "cfradial2_file",
+        {},
     ),
     "open_furuno_datatree": ("xradar.io.backends.furuno", "furuno_scn_file", {}),
     "open_rainbow_datatree": ("xradar.io.backends.rainbow", "rainbow_file", {}),

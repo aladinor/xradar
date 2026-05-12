@@ -18,6 +18,7 @@ from .backends import *  # noqa
 from .export import *  # noqa
 
 from .backends.cfradial1 import CfRadial1BackendEntrypoint
+from .backends.cfradial2 import CfRadial2BackendEntrypoint
 from .backends.datamet import DataMetBackendEntrypoint
 from .backends.furuno import FurunoBackendEntrypoint
 from .backends.gamic import GamicBackendEntrypoint
@@ -33,6 +34,7 @@ from .backends.uf import UFBackendEntrypoint
 _ENGINE_REGISTRY = {
     "odim": OdimBackendEntrypoint,
     "cfradial1": CfRadial1BackendEntrypoint,
+    "cfradial2": CfRadial2BackendEntrypoint,
     "nexradlevel2": NexradLevel2BackendEntrypoint,
     "gamic": GamicBackendEntrypoint,
     "iris": IrisBackendEntrypoint,
