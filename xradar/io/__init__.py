@@ -78,4 +78,16 @@ def open_datatree(filename_or_obj, *, engine, **kwargs):
     return backend.open_datatree(filename_or_obj, **kwargs)
 
 
+def list_engines():
+    """Return a sorted list of engine names registered with :func:`open_datatree`.
+
+    Examples
+    --------
+    >>> import xradar as xd
+    >>> "odim" in xd.io.list_engines()
+    True
+    """
+    return sorted(_ENGINE_REGISTRY)
+
+
 __all__ = [s for s in dir() if not s.startswith("_")]

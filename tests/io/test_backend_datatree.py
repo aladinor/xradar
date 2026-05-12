@@ -231,6 +231,16 @@ class TestEngineRegistry:
         }
         assert set(_ENGINE_REGISTRY.keys()) == expected
 
+    def test_demo_notebook_lists_all_engines(self):
+        """Bitrot guard: adding an engine to the registry must also be demoed."""
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[2]
+        notebook = repo_root / "docs/notebooks/Open-Datatree-Engine.md"
+        text = notebook.read_text()
+        for engine in _ENGINE_REGISTRY:
+            assert f'engine="{engine}"' in text, f"notebook missing engine={engine!r}"
+
 
 # -- Backward compatibility & deprecation tests ------------------------------
 
